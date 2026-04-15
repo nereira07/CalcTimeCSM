@@ -232,7 +232,7 @@
             totalMin += (row.estado === 'F' ? tiempos[tipo][0] : tiempos[tipo][1]);
         });
 
-        let text = "RIEPILOGO HOUSEKEEPING\n";
+        let text = "RIEPILOGO CSMdB\n";
         text += "Data: " + new Date().toLocaleDateString('it-IT') + "\n";
         text += "=========================\n";
 
@@ -248,7 +248,7 @@
                     if (t === "Doppia") tipoStr = cant === 1 ? "Doppia" : "Doppie";
                     text += `${cant} ${estStr} ${tipoStr}\n`;
                 }
-            }
+            }p
         });
 
         if (!hayDatos) text += "(Nessuna stanza selezionata)\n";

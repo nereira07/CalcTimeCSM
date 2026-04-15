@@ -1,1 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Housekeeping</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; color: #333; margin-bottom: 5px; }
+        .date-header { text-align: center; color: #666; margin-bottom: 20px; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #eee; padding: 10px; font-size: 0.9em; border-bottom: 2px solid #ddd; }
+        td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: center; }
+
+        .btn-group { display: flex; gap: 5px; justify-content: center; }
+        .toggle-btn {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .toggle-btn.active-f { background-color: #4caf50; color: white; border-color: #388e3c; }
+        .toggle-btn.active-p { background-color: #2196f3; color: white; border-color: #1976d2; }
+
+        select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .action-buttons { display: flex; gap: 10px; }
+        button.main-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .btn-clear { background-color: #e57373; }
+        .btn-riepilogo { background-color: #64b5f6; }
+        .total-display {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1a73e8;
+            margin-top: 10px;
+        }
+
+        /* Modal / Riepilogo */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 85%;
+            max-width: 400px;
+            white-space: pre-wrap;
+        }
+        .btn-close {
+            background: #333; color: white; border: none;
+            padding: 10px; width: 100%; border-radius: 5px; margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Gestione Housekeeping</h2>
+    <div id="current-date" class="date-header"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%;">Num</th>
+                <th style="width: 35%;">Tipo</th>
+                <th style="width: 15%;">F</th>
+                <th style="width: 15%;">P</th>
+                <th style="width: 20%;">Min</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            </tbody>
+    </table>
+
+    <div class="footer">
+        <div class="action-buttons">
+            <button class="main-btn btn-clear" onclick="clearAll()">Pulisci Tutto</button>
+            <button class="main-btn btn-riepilogo" onclick="showRiepilogo()">Riepilogo</button>
+        </div>
+        <div id="total-text" class="total-display">Total: 0 min (0 ore e 0 min)</div>
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <div id="report-text" style="font-family: monospace;"></div>
+        <button class="btn-close" onclick="closeModal()">Chiudi</button>
+    </div>
+</div>
+
+<script>
+    const tiempos = { "Singola": [15, 25], "Doppia": [20, 30], "3/4/Appt": [25, 45] };
+    const datosIniciales = [
+        ["001", "3/4/Appt"], ["201", "Doppia"], ["202", "Doppia"],
+        ["203", "Doppia"], ["204", "Singola"], ["205", "3/4/Appt"],
+        ["301", "Doppia"], ["302", "Doppia"], ["303", "Doppia"], ["304", "Singola"],
+        ["305", "Singola"], ["306", "Singola"], ["307", "Singola"],
+        ["308", "Doppia"], ["309", "Doppia"], ["401", "Doppia"], ["402", "Doppia"],
+        ["403", "3/4/Appt"]
+    ];
+
+    let rows = [];
+
+    function init() {
+        document.getElementById('current-date').innerText = "Giornata: " + new Date().toLocaleDateString('it-IT');
+        const tbody = document.getElementById('table-body');
+
+        datosIniciales.forEach((data, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${data[0]}</strong></td>
+                <td>
+                    <select id="tipo-${index}" onchange="recalcular()">
+                        <option value="Singola" ${data[1] === 'Singola' ? 'selected' : ''}>Singola</option>
+                        <option value="Doppia" ${data[1] === 'Doppia' ? 'selected' : ''}>Doppia</option>
+                        <option value="3/4/Appt" ${data[1] === '3/4/Appt' ? 'selected' : ''}>3/4/Appt</option>
+                    </select>
+                </td>
+                <td><button id="f-${index}" class="toggle-btn" onclick="toggle(${index}, 'f')">F</button></td>
+                <td><button id="p-${index}" class="toggle-btn" onclick="toggle(${index}, 'p')">P</button></td>
+                <td id="min-${index}">0</td>
+            `;
+            tbody.appendChild(tr);
+            rows.push({ num: data[0], estado: null });
+        });
+    }
+
+    function toggle(index, type) {
+        const fBtn = document.getElementById(`f-${index}`);
+        const pBtn = document.getElementById(`p-${index}`);
+
+        if (type === 'f') {
+            if (rows[index].estado === 'F') {
+                rows[index].estado = null;
+                fBtn.classList.remove('active-f');
+            } else {
+                rows[index].estado = 'F';
+                fBtn.classList.add('active-f');
+                pBtn.classList.remove('active-p');
+            }
+        } else {
+            if (rows[index].estado === 'P') {
+                rows[index].estado = null;
+                pBtn.classList.remove('active-p');
+            } else {
+                rows[index].estado = 'P';
+                pBtn.classList.add('active-p');
+                fBtn.classList.remove('active-f');
+            }
+        }
+        recalcular();
+    }
+
+    function recalcular() {
+        let totalMin = 0;
+        rows.forEach((row, i) => {
+            const tipo = document.getElementById(`tipo-${i}`).value;
+            let m = 0;
+            if (row.estado === 'F') m = tiempos[tipo][0];
+            if (row.estado === 'P') m = tiempos[tipo][1];
+            
+            document.getElementById(`min-${i}`).innerText = m;
+            totalMin += m;
+        });
+
+        const ore = Math.floor(totalMin / 60);
+        const min = totalMin % 60;
+        document.getElementById('total-text').innerText = `Total: ${totalMin} min (${ore} ore e ${min} min)`;
+    }
+
+    function clearAll() {
+        rows.forEach((row, i) => {
+            row.estado = null;
+            document.getElementById(`f-${i}`).classList.remove('active-f');
+            document.getElementById(`p-${i}`).classList.remove('active-p');
+        });
+        recalcular();
+    }
+
+    function showRiepilogo() {
+        let resumen = {
+            Fermata: { Singola: 0, Doppia: 0, "3/4/Appt": 0 },
+            Partenza: { Singola: 0, Doppia: 0, "3/4/Appt": 0 }
+        };
+        let totalMin = 0;
+
+        rows.forEach((row, i) => {
+            if (!row.estado) return;
+            const tipo = document.getElementById(`tipo-${i}`).value;
+            const key = row.estado === 'F' ? 'Fermata' : 'Partenza';
+            resumen[key][tipo]++;
+            totalMin += (row.estado === 'F' ? tiempos[tipo][0] : tiempos[tipo][1]);
+        });
+
+        let text = "RIEPILOGO HOUSEKEEPING\n";
+        text += "Data: " + new Date().toLocaleDateString('it-IT') + "\n";
+        text += "=========================\n";
+
+        let hayDatos = false;
+        ["Fermata", "Partenza"].forEach(est => {
+            for (let t in resumen[est]) {
+                let cant = resumen[est][t];
+                if (cant > 0) {
+                    hayDatos = true;
+                    let estStr = cant === 1 ? est : est.slice(0, -1) + 'e';
+                    let tipoStr = t;
+                    if (t === "Singola") tipoStr = cant === 1 ? "Singola" : "Singole";
+                    if (t === "Doppia") tipoStr = cant === 1 ? "Doppia" : "Doppie";
+                    text += `${cant} ${estStr} ${tipoStr}\n`;
+                }
+            }
+        });
+
+        if (!hayDatos) text += "(Nessuna stanza selezionata)\n";
+        text += "=========================\n";
+        text += `TOTALE: ${Math.floor(totalMin/60)} ore e ${totalMin%60} min`;
+
+        document.getElementById('report-text').innerText = text;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    init();
+</script>
+
+</body>
+  </html>
 

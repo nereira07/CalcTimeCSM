@@ -1,0 +1,14 @@
+   text += "=========================\n";
+        text += `TOTALE: ${Math.floor(totalMin/60)} ore e ${totalMin%60} min`;
+
+        document.getElementById('report-text').innerText = text;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    init();
+</script>
+
+</body>
+</html>

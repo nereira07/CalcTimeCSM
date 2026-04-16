@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calcolatore CSMdB</title>
+    <title>Gestione Housekeeping</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -95,7 +95,7 @@
 <body>
 
 <div class="container">
-    <h2> Calcolatore CSMdB </h2>
+    <h2>Gestione Housekeeping</h2>
     <div id="current-date" class="date-header"></div>
 
     <table>
@@ -232,7 +232,7 @@
             totalMin += (row.estado === 'F' ? tiempos[tipo][0] : tiempos[tipo][1]);
         });
 
-        let text = "RIEPILOGO CSMdB\n";
+        let text = "RIEPILOGO HOUSEKEEPING\n";
         text += "Data: " + new Date().toLocaleDateString('it-IT') + "\n";
         text += "=========================\n";
 
@@ -248,7 +248,7 @@
                     if (t === "Doppia") tipoStr = cant === 1 ? "Doppia" : "Doppie";
                     text += `${cant} ${estStr} ${tipoStr}\n`;
                 }
-            }p
+            }
         });
 
         if (!hayDatos) text += "(Nessuna stanza selezionata)\n";
